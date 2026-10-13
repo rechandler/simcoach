@@ -237,6 +237,14 @@ def cmd_g61_import(cfg: Config, args) -> int:
     return 0
 
 
+# -------------------------------------------------------------------- setup
+def cmd_setup(cfg: Config, args) -> int:
+    from simcoach.setup_wizard import run_setup
+
+    run_setup(Path(args.config) if args.config else None)
+    return 0
+
+
 # ------------------------------------------------------------------ devices
 def cmd_devices(cfg: Config, args) -> int:
     try:
@@ -316,12 +324,17 @@ def main(argv: list[str] | None = None) -> int:
     gi.add_argument("--track-length", type=float, help="metres (if the CSV has only LapDistPct)")
     gi.set_defaults(func=cmd_g61_import)
 
+    st = sub.add_parser("setup", help="first-time setup: wheel button, mic, coach AI, API keys")
+    st.set_defaults(func=cmd_setup)
+
     dv = sub.add_parser("devices", help="find your wheel's push-to-talk button and microphone")
     dv.add_argument("--seconds", type=float, default=20)
     dv.set_defaults(func=cmd_devices)
 
     args = p.parse_args(argv)
     _setup_logging(args.verbose)
+    if args.cmd == "setup":
+        return cmd_setup(Config(), args)
     cfg = load_config(args.config)
     try:
         return args.func(cfg, args) or 0

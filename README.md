@@ -42,32 +42,52 @@ so iRacing keeps the GPU. If you have a card with 12 GB+ VRAM, or a second PC on
 network, Ollama works well: set `llm.provider: ollama`. Set `provider: none` for
 rule-based answers only.
 
-## Quick start (Windows)
+## Install (Windows, one step)
 
-You need Python 3.10+.
+Open PowerShell and paste:
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/rechandler/simcoach/main/install.ps1 | iex"
+```
+
+Or download the repo and double-click **`install.cmd`**. The installer doesn't need
+admin rights. It:
+
+1. Uses your Python 3.10–3.13, or installs Python 3.12 for your user (winget, or
+   python.org if winget isn't available).
+2. Installs simcoach and everything it needs into its own environment in
+   `%LOCALAPPDATA%\simcoach`, so nothing else on your PC is touched.
+3. Adds a **SimCoach** shortcut to your desktop and Start menu, and adds `simcoach` to
+   your PATH.
+4. Runs the setup wizard:
+   - **Push-to-talk:** "press the button on your wheel you want to use", and it
+     detects it.
+   - **Microphone:** pick one.
+   - **Coach AI:** Claude (paste your API key, which is saved as a user environment
+     variable), local Ollama (it can install Ollama and pull the model), or none.
+   - **Garage 61:** an optional token.
+   - It then downloads the speech model and plays a voice check.
+
+After that, start iRacing and double-click **SimCoach**. Drive one clean lap, which
+becomes your reference, and coaching starts from the next lap. You can also type
+questions in the SimCoach window.
+
+- **Try it without iRacing:** `simcoach demo`.
+- **Change settings:** `simcoach setup`.
+- **Upgrade:** re-run the installer. Your settings and laps are kept.
+- **Uninstall:** `%LOCALAPPDATA%\simcoach\uninstall.cmd`.
+- **Install from another branch:** set `$env:SIMCOACH_BRANCH = "<branch>"` before
+  running the one-liner.
+
+### Manual install
 
 ```powershell
 git clone https://github.com/rechandler/simcoach && cd simcoach
 python -m venv .venv; .venv\Scripts\activate
 pip install -e ".[all]"
-
-# Try it without iRacing: a simulated stint with mistakes on a test track
-simcoach demo
-
-# Set up your wheel button and microphone
-simcoach devices          # press the button you want for push-to-talk
-copy config.example.yaml simcoach.yaml   # set voice.joystick_name / joystick_button
-
-# Claude API key (https://console.anthropic.com)
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
-
+simcoach setup
 simcoach run
 ```
-
-Start `simcoach run` before or after iRacing. It waits for the sim and picks up the
-track and car automatically. Drive one clean lap, which becomes your reference, and
-coaching starts from the next lap. You can also type questions in the terminal, which is
-handy for testing.
 
 ### Things you can say
 
