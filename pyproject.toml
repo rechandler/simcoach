@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simcoach"
+version = "0.1.0"
+description = "A live, voice-driven AI driving coach for iRacing"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Live telemetry from iRacing (Windows only - iRacing itself is Windows only)
+iracing = ["pyirsdk>=1.3"]
+# Push-to-talk, speech-to-text and text-to-speech
+voice = [
+    "faster-whisper>=1.0",
+    "sounddevice>=0.4",
+    "pyttsx3>=2.90",
+    "pygame>=2.5",
+    "keyboard>=0.13",
+]
+# Cloud LLM (Claude). Local LLMs via Ollama need no extra Python package.
+claude = ["anthropic>=1.13"]
+all = ["simcoach[iracing,voice,claude]"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+simcoach = "simcoach.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["simcoach*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

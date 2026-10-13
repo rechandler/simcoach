@@ -1,0 +1,66 @@
+# Copy to simcoach.yaml (next to where you run it) or ~/.simcoach/config.yaml.
+# Every value is optional - these are the defaults.
+
+units: metric              # metric | imperial (spoken distances and speeds)
+
+voice:
+  # Push-to-talk on a steering wheel button. Run `simcoach devices` and press
+  # the button to find joystick_name / joystick_button.
+  ptt: joystick            # joystick | keyboard | none
+  joystick_name: ""        # part of the device name, e.g. "Fanatec", "Simucube", "MOZA", "Button Box"
+  joystick_button: 0
+  keyboard_key: f13        # if ptt: keyboard (map the wheel button to this key in SimHub/JoyToKey)
+  ptt_mode: hold           # hold = talk while held, toggle = press to start/stop
+  # Speech-to-text runs locally with faster-whisper. CPU keeps the GPU for iRacing;
+  # use stt_device: cuda + stt_compute_type: float16 if you have VRAM to spare.
+  stt_model: small.en      # tiny.en / base.en are faster, medium.en more accurate
+  stt_device: cpu
+  stt_compute_type: int8
+  input_device: null       # microphone name or index (see `simcoach devices`)
+  # Text-to-speech
+  tts: sapi                # sapi (Windows voices) | piper (neural, local) | console
+  tts_rate: 185
+  tts_voice: ""            # part of a voice name, e.g. "Zira", "David"
+  piper_exe: piper
+  piper_model: ""          # path to a Piper .onnx voice, e.g. en_US-ryan-medium.onnx
+
+llm:
+  # anthropic: Claude in the cloud - best answers, no load on your gaming PC.
+  #            Needs ANTHROPIC_API_KEY in the environment.
+  # ollama:    fully local via https://ollama.com - free and offline, but competes
+  #            with iRacing for GPU/VRAM. Fine with 12 GB+ VRAM or a second PC.
+  # none:      rule-based answers only.
+  provider: anthropic
+  model: claude-opus-5-5
+  effort: low              # low keeps spoken answers quick
+  ollama_url: http://localhost:11434
+  ollama_model: qwen2.5:7b-instruct
+
+callouts:
+  enabled: true
+  min_gap_s: 6             # minimum time between spoken callouts
+  max_age_s: 10            # drop advice that couldn't be said in time
+  repeat_laps: 2           # don't repeat the same advice for a corner within N laps
+  quiet_before_brake_m: 120  # never talk this close to a braking zone
+  pre_corner_reminders: false  # short cue ("Turn 2, brake a bit earlier") before the corner next lap
+  reminder_lead_s: 3
+
+coaching:
+  min_time_loss_s: 0.06    # ignore corners that lost less than this
+  late_brake_m: 8
+  early_brake_m: 12
+  min_speed_kph: 4
+  throttle_late_m: 15
+  coast_m: 15
+  brake_pressure: 0.12
+  exit_speed_kph: 4
+  praise_enabled: true
+  praise_gain_s: 0.12
+
+overlay:
+  enabled: false           # http://127.0.0.1:8765/ - OBS browser source / second screen
+  host: 127.0.0.1
+  port: 8765
+
+garage61:
+  token: ""                # or set GARAGE61_TOKEN; create at https://garage61.net/developer
