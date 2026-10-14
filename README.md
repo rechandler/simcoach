@@ -33,7 +33,7 @@ recent laps and your reference, so its answers are grounded in your data.
 |---|---|---|
 | Answer quality | Best | Good with 7–14B models |
 | Load on your PC | None | Competes with iRacing for GPU/VRAM, so frame drops are possible |
-| Cost | Pay per question (fractions of a cent with `effort: low`) | Free |
+| Cost | Pay per question: about 1–3 cents each with Claude Opus 5.5 (`llm.model` can be set to `claude-haiku-5-5` for well under a tenth of a cent, with simpler answers) | Free |
 | Offline | No | Yes |
 
 The LLM only runs when you ask a question, and the always-on parts (Whisper speech

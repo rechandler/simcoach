@@ -83,9 +83,10 @@ class Assistant:
                 reply.append(s)
                 yield s
         except Exception as e:
-            if type(e).__name__ == "MissingCredentials":
+            spoken = getattr(e, "spoken", None)
+            if spoken:  # known, user-fixable problem: one clear line, no traceback
                 log.error("%s", e)
-                yield "I don't have a Claude API key, so here's what the telemetry says."
+                yield spoken
             else:
                 log.exception("LLM request failed")
                 yield "Sorry, I couldn't reach the coach model."

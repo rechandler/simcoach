@@ -18,8 +18,19 @@ from simcoach.config import LLMConfig
 log = logging.getLogger(__name__)
 
 
-class MissingCredentials(RuntimeError):
-    """No Anthropic API key could be found."""
+class CoachUnavailable(RuntimeError):
+    """Claude can't answer right now; ``spoken`` is what to tell the driver."""
+
+    def __init__(self, message: str, spoken: str):
+        super().__init__(message)
+        self.spoken = spoken
+
+
+class MissingCredentials(CoachUnavailable):
+    """No (valid) Anthropic API key."""
+
+    def __init__(self, message: str):
+        super().__init__(message, "I don't have a working Claude API key, so here's what the telemetry says.")
 
 
 HOW_TO_FIX = ("No Claude API key found. Run `simcoach setup`, or run "
@@ -85,6 +96,20 @@ class ClaudeLLM:
             if "authentication" in str(e).lower() or "api_key" in str(e):
                 raise MissingCredentials(HOW_TO_FIX) from e
             raise
+        except self._anthropic.BadRequestError as e:
+            if "credit balance" in str(e).lower():
+                raise CoachUnavailable(
+                    "Your Anthropic account is out of credit. Add credit at "
+                    "https://console.anthropic.com/settings/billing",
+                    "My Claude account is out of credit, so here's what the telemetry says.") from e
+            raise
+        except self._anthropic.RateLimitError as e:
+            raise CoachUnavailable(f"Claude rate limit: {e}", "Claude is busy right now, here's the telemetry.") from e
+        except self._anthropic.APIConnectionError as e:
+            raise CoachUnavailable(f"Can't reach the Claude API: {e}",
+                                   "I can't reach Claude right now, here's the telemetry.") from e
+        except self._anthropic.InternalServerError as e:
+            raise CoachUnavailable(f"Claude API error: {e}", "Claude is having trouble, here's the telemetry.") from e
 
     def _stream(self, system: str, messages: list[dict]) -> Iterator[str]:
         # The system prompt is identical on every question, so cache it.

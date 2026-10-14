@@ -42,3 +42,23 @@ def test_missing_credentials_become_a_clear_error(monkeypatch):
     llm._stream = boom
     with pytest.raises(claude_mod.MissingCredentials, match="simcoach setup"):
         list(llm.stream("s", []))
+
+
+def test_out_of_credit_is_explained(monkeypatch):
+    llm = make(monkeypatch)
+
+    class BadRequest(Exception):
+        pass
+
+    llm._anthropic.BadRequestError = BadRequest
+    for name in ("RateLimitError", "APIConnectionError", "InternalServerError"):
+        setattr(llm._anthropic, name, type(name, (Exception,), {}))
+
+    def boom(system, messages):
+        raise BadRequest("Error code: 400 - Your credit balance is too low to access the Anthropic API.")
+        yield  # pragma: no cover
+
+    llm._stream = boom
+    with pytest.raises(claude_mod.CoachUnavailable) as exc:
+        list(llm.stream("s", []))
+    assert "out of credit" in exc.value.spoken and "billing" in str(exc.value)
