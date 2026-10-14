@@ -1,17 +1,52 @@
 """Claude (cloud) backend using the official Anthropic SDK.
 
-Credentials come from the environment (ANTHROPIC_API_KEY, or an
-`ant auth login` profile) - never put keys in the config file.
+Credentials come from the ANTHROPIC_API_KEY environment variable (on
+Windows also read from the saved user environment, so a key saved with
+`setx` works without restarting), or an `ant auth login` profile. Never put
+keys in the config file.
 """
 
 from __future__ import annotations
 
 import logging
+import os
+import sys
 from typing import Iterator
 
 from simcoach.config import LLMConfig
 
 log = logging.getLogger(__name__)
+
+
+class MissingCredentials(RuntimeError):
+    """No Anthropic API key could be found."""
+
+
+HOW_TO_FIX = ("No Claude API key found. Run `simcoach setup`, or run "
+              "setx ANTHROPIC_API_KEY \"sk-ant-...\" (get a key at https://console.anthropic.com/settings/keys).")
+
+
+def saved_user_env(name: str) -> str | None:
+    """Read a user environment variable straight from the Windows registry.
+
+    `setx` (used by `simcoach setup`) only affects programs started afterwards,
+    so a window that was already open won't see a freshly saved key. Reading
+    the registry picks it up without a restart.
+    """
+    if sys.platform != "win32":
+        return None
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as k:
+            value, _ = winreg.QueryValueEx(k, name)
+            return str(value) or None
+    except OSError:
+        return None
+
+
+def find_api_key() -> str | None:
+    return os.environ.get("ANTHROPIC_API_KEY") or saved_user_env("ANTHROPIC_API_KEY")
 
 
 class ClaudeLLM:
@@ -23,14 +58,40 @@ class ClaudeLLM:
         self._anthropic = anthropic
         self.cfg = cfg
         self.name = f"claude:{cfg.model}"
-        self.client = anthropic.Anthropic(timeout=cfg.timeout_s, max_retries=1)
+        self.client = None
+        self._key: str | None = None
+        if not (find_api_key() or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+            log.warning(HOW_TO_FIX)
+
+    def _get_client(self):
+        """Create the client lazily so a key saved while simcoach is running works."""
+        key = find_api_key()
+        if self.client is None or (key and key != self._key):
+            kwargs = {"timeout": self.cfg.timeout_s, "max_retries": 1}
+            if key:
+                kwargs["api_key"] = key
+            # Otherwise the SDK falls back to ANTHROPIC_AUTH_TOKEN or an `ant auth login` profile.
+            self.client = self._anthropic.Anthropic(**kwargs)
+            self._key = key
+        return self.client
 
     def stream(self, system: str, messages: list[dict]) -> Iterator[str]:
+        try:
+            yield from self._stream(system, messages)
+        except self._anthropic.AuthenticationError as e:
+            raise MissingCredentials("Your Claude API key was rejected. " + HOW_TO_FIX) from e
+        except TypeError as e:
+            # The SDK raises TypeError when it can't find any credentials.
+            if "authentication" in str(e).lower() or "api_key" in str(e):
+                raise MissingCredentials(HOW_TO_FIX) from e
+            raise
+
+    def _stream(self, system: str, messages: list[dict]) -> Iterator[str]:
         # The system prompt is identical on every question, so cache it.
         system_blocks = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
         # Server-side fallbacks: if a request is ever declined by a safety
         # classifier, the API retries it on a recommended fallback model.
-        with self.client.beta.messages.stream(
+        with self._get_client().beta.messages.stream(
             model=self.cfg.model,
             max_tokens=self.cfg.max_tokens,
             system=system_blocks,

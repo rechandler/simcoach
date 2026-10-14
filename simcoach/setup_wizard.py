@@ -174,12 +174,17 @@ def run_setup(config_path: Path | None = None, ask: Ask = input, hardware: bool 
     ], 1, ask)
     if choice == 1:
         llm["provider"] = "anthropic"
-        if os.environ.get("ANTHROPIC_API_KEY"):
+        from simcoach.llm.claude import find_api_key
+
+        if find_api_key():
             print("  ANTHROPIC_API_KEY is already set.")
         else:
             print("  Create a key at https://console.anthropic.com/settings/keys")
             key = getpass.getpass("  Paste your API key (hidden, Enter to skip): ").strip() if ask is input \
                 else ask("key: ").strip()
+            key = key.strip().strip('"').strip("'")
+            if key and not key.startswith("sk-ant-"):
+                print("  That doesn't look like an Anthropic key (they start with sk-ant-); saving it anyway.")
             if key:
                 set_user_env("ANTHROPIC_API_KEY", key)
                 print("  Saved as a user environment variable.")

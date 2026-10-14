@@ -82,9 +82,13 @@ class Assistant:
             for s in sentences(self.llm.stream(SYSTEM_PROMPT, messages)):
                 reply.append(s)
                 yield s
-        except Exception:
-            log.exception("LLM request failed")
-            yield "Sorry, I couldn't reach the coach model."
+        except Exception as e:
+            if type(e).__name__ == "MissingCredentials":
+                log.error("%s", e)
+                yield "I don't have a Claude API key, so here's what the telemetry says."
+            else:
+                log.exception("LLM request failed")
+                yield "Sorry, I couldn't reach the coach model."
             yield from self._fallback_answer(snap, focus)
             return
         with self._lock:
