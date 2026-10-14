@@ -139,6 +139,10 @@ if ($local) {
 }
 & $VenvPy -m pip install --upgrade --upgrade-strategy only-if-needed $spec
 if ($LASTEXITCODE -ne 0) { Fail 'pip install failed (see the messages above)' }
+# Always replace simcoach itself with the freshly downloaded copy: pip can
+# otherwise keep an installed copy whose version number hasn't changed.
+& $VenvPy -m pip install --force-reinstall --no-deps --no-cache-dir --quiet $spec
+if ($LASTEXITCODE -ne 0) { Fail 'could not install the latest simcoach' }
 $Exe = Join-Path $Venv 'Scripts\simcoach.exe'
 if (-not (Test-Path $Exe)) { Fail 'simcoach.exe was not created' }
 
